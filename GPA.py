@@ -1,4 +1,5 @@
 import streamlit as st
+import json
 
 # Harf notlarının katsayıları
 grade_points = {
@@ -92,16 +93,16 @@ def calculate_gpa(courses):
 # --- Streamlit Arayüzü ---
 st.title("🎓 GPA Hesaplama Uygulaması")
 
-# Staj Seçenekleri (sadece krediye etki eder)
+# Staj Seçenekleri
 st.sidebar.header("Stajlar")
 staj1 = st.sidebar.checkbox("INDUSTRY TRAINING I (3 kredi)")
 staj2 = st.sidebar.checkbox("INDUSTRY TRAINING II (3 kredi)")
 
-staj_courses = []
+staj_credits = 0
 if staj1:
-    staj_courses.append({"name": "INDUSTRY TRAINING I", "credit": 3, "grade": None, "type": "staj"})
+    staj_credits += 3
 if staj2:
-    staj_courses.append({"name": "INDUSTRY TRAINING II", "credit": 3, "grade": None, "type": "staj"})
+    staj_credits += 3
 
 # Yarıyıl seçimi
 semester = st.sidebar.selectbox("Yarıyıl Seç", list(predefined_courses.keys()))
@@ -109,18 +110,21 @@ semester = st.sidebar.selectbox("Yarıyıl Seç", list(predefined_courses.keys()
 # Session state hazırlığı
 if "courses" not in st.session_state:
     st.session_state["courses"] = {}
-if "electives" not in st.session_state:
-    st.session_state["electives"] = {}
 
 # Ders listesi göster ve not seçtir
 st.subheader(f"📚 {semester} Dersleri")
 
-entered_courses = []
+entered_courses = st.session_state["courses"].get(semester, [])
+
+# Ön tanımlı dersler
 for course in predefined_courses[semester]:
     grade = st.selectbox(
-        f"{course['name']} ({course['credit']} kredi)", 
-        list(grade_points.keys()), 
-        key=f"{semester}-{course['name']}"
+        f"{course['name']} ({course['credit']} kredi)",
+        list(grade_points.keys()),
+        key=f"{semester}-{course['name']}",
+        index=list(grade_points.keys()).index(
+            next((c["grade"] for c in entered_courses if c["name"] == course["name"]), "A")
+        ) if entered_courses else 0
     )
     new_course = {
         "name": course["name"],
@@ -128,50 +132,53 @@ for course in predefined_courses[semester]:
         "grade": grade,
         "type": "normal"
     }
-    entered_courses.append(new_course)
+    entered_courses = [c for c in entered_courses if c["name"] != course["name"]] + [new_course]
 
-# --- Seçmeli ders ekleme ---
+# Seçmeli ders ekleme
 with st.expander("➕ Seçmeli Ders Ekle"):
     elective_name = st.text_input("Seçmeli Ders Adı", key=f"elective-{semester}")
     elective_grade = st.selectbox("Seçmeli Ders Notu", list(grade_points.keys()), key=f"elective-grade-{semester}")
     if st.button("Ekle", key=f"add-elective-{semester}") and elective_name:
-        new_elective = {"name": elective_name, "credit": 6, "grade": elective_grade, "type": "elective"}
-        if semester not in st.session_state["electives"]:
-            st.session_state["electives"][semester] = []
-        st.session_state["electives"][semester].append(new_elective)
-
-# --- Seçmeli dersleri anında göster + not değiştirilebilir ---
-if semester in st.session_state["electives"]:
-    st.write("📌 Eklenmiş Seçmeli Dersler:")
-    updated_electives = []
-    for i, elective in enumerate(st.session_state["electives"][semester]):
-        grade = st.selectbox(
-            f"{elective['name']} ({elective['credit']} kredi)",
-            list(grade_points.keys()),
-            index=list(grade_points.keys()).index(elective["grade"]),
-            key=f"{semester}-elective-{i}"
-        )
-        elective["grade"] = grade
-        updated_electives.append(elective)
-    st.session_state["electives"][semester] = updated_electives
-    entered_courses.extend(updated_electives)
-
+        entered_courses.append({"name": elective_name, "credit": 6, "grade": elective_grade, "type": "elective"})
 
 # Kaydet
 if st.button("💾 Kaydet"):
-    all_courses = entered_courses
-    st.session_state["courses"][semester] = all_courses
+    st.session_state["courses"][semester] = entered_courses
 
+# Kayıtlı seçmeli dersleri göster
+if any(c["type"] == "elective" for c in entered_courses):
+    st.write("📌 Eklenen Seçmeli Dersler:")
+    for c in [c for c in entered_courses if c["type"] == "elective"]:
+        st.write(f"- {c['name']} ({c['credit']} kredi) | Not: {c['grade']}")
 
-# Hesaplama
-if st.session_state["courses"] or staj_courses:
+# --- JSON Kaydet / Yükle ---
+st.markdown("---")
+st.subheader("💽 Verileri Kaydet / Yükle")
+
+# JSON indir
+data = json.dumps(st.session_state["courses"], ensure_ascii=False, indent=2)
+st.download_button(
+    label="📥 JSON Olarak İndir",
+    data=data,
+    file_name="gpa_data.json",
+    mime="application/json"
+)
+
+# JSON yükle
+uploaded_file = st.file_uploader("📂 Daha önce kaydedilmiş veriyi yükle", type="json")
+if uploaded_file is not None:
+    st.session_state["courses"] = json.load(uploaded_file)
+    st.success("✅ Veriler başarıyla yüklendi!")
+
+# --- Hesaplama ---
+if st.session_state["courses"]:
     # Dönem bazlı
     for sem_key, courses in st.session_state["courses"].items():
         st.subheader(f"📊 {sem_key} Sonuçları")
         gpa, valid, invalid, total_gpa = calculate_gpa(courses)
         st.write(f"**GPA:** {gpa:.2f}")
         st.write(f"Stajlar Hariç TOPLAM KREDİ: {valid}")
-        st.write(f"Stajlar Dahil TOPLAM KREDİ: {valid + sum(c['credit'] for c in staj_courses)}")
+        st.write(f"Stajlar Dahil TOPLAM KREDİ: {valid + staj_credits}")
         if invalid > 0:
             st.write(f"Geçersiz Kredi (F Notu): {invalid}")
         st.markdown("---")
@@ -182,6 +189,6 @@ if st.session_state["courses"] or staj_courses:
     st.subheader("📈 Genel Sonuç")
     st.write(f"**Genel GPA:** {gpa:.2f}")
     st.write(f"Stajlar Hariç TOPLAM KREDİ: {valid}")
-    st.write(f"Stajlar Dahil TOPLAM KREDİ: {valid + sum(c['credit'] for c in staj_courses)}")
+    st.write(f"Stajlar Dahil TOPLAM KREDİ: {valid + staj_credits}")
     if invalid > 0:
         st.write(f"Geçersiz Kredi (F Notu): {invalid}")
