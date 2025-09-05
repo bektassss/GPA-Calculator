@@ -5,10 +5,11 @@ import json
 grade_points = {
     "A": 4.0, "A-": 3.7, "B+": 3.3, "B": 3.0, "B-": 2.7,
     "C+": 2.3, "C": 2.0, "C-": 1.7, "D+": 1.3, "D": 1.0,
-    "D-": 0.7, "F": 0.0, "P": 0.0
+    "D-": 0.7, "F": 0.0, "P": 0.0,
+    "Alınmadı": None  # ✅ Yeni seçenek
 }
 
-# Yarıyıllara göre dersler (stajlar kaldırıldı)
+# Yarıyıllara göre dersler (stajlar hariç)
 predefined_courses = {
     "1. Yarıyıl": [
         {"name": "PHYSICS I", "credit": 7},
@@ -70,10 +71,15 @@ predefined_courses = {
 def calculate_gpa(courses):
     gpa_points, gpa_credits = 0, 0
     valid_credits, invalid_credits = 0, 0
+    not_taken = []  # ✅ alınmayan dersler
 
     for course in courses:
         grade = course.get("grade")
         credit = course["credit"]
+
+        if grade == "Alınmadı":  # alınmayan dersler
+            not_taken.append(course["name"])
+            continue
 
         if grade is None:
             continue
@@ -87,7 +93,7 @@ def calculate_gpa(courses):
             valid_credits += credit
 
     gpa = gpa_points / gpa_credits if gpa_credits > 0 else 0
-    return gpa, valid_credits, invalid_credits, gpa_credits
+    return gpa, valid_credits, invalid_credits, gpa_credits, not_taken
 
 
 # --- Streamlit Arayüzü ---
@@ -123,8 +129,8 @@ for course in predefined_courses[semester]:
         list(grade_points.keys()),
         key=f"{semester}-{course['name']}",
         index=list(grade_points.keys()).index(
-            next((c["grade"] for c in entered_courses if c["name"] == course["name"]), "A")
-        ) if entered_courses else 0
+            next((c["grade"] for c in entered_courses if c["name"] == course["name"]), "Alınmadı")
+        ) if entered_courses else list(grade_points.keys()).index("Alınmadı")
     )
     new_course = {
         "name": course["name"],
@@ -175,20 +181,26 @@ if st.session_state["courses"]:
     # Dönem bazlı
     for sem_key, courses in st.session_state["courses"].items():
         st.subheader(f"📊 {sem_key} Sonuçları")
-        gpa, valid, invalid, total_gpa = calculate_gpa(courses)
+        gpa, valid, invalid, total_gpa, not_taken = calculate_gpa(courses)
         st.write(f"**GPA:** {gpa:.2f}")
         st.write(f"Stajlar Hariç TOPLAM KREDİ: {valid}")
         st.write(f"Stajlar Dahil TOPLAM KREDİ: {valid + staj_credits}")
         if invalid > 0:
             st.write(f"Geçersiz Kredi (F Notu): {invalid}")
+        if not_taken:
+            for ders in not_taken:
+                st.write(f"❌ Bu yarıyılda **{ders}** dersi alınmadı.")
         st.markdown("---")
 
     # Genel sonuç
     all_courses = [c for sem in st.session_state["courses"].values() for c in sem]
-    gpa, valid, invalid, total_gpa = calculate_gpa(all_courses)
+    gpa, valid, invalid, total_gpa, not_taken = calculate_gpa(all_courses)
     st.subheader("📈 Genel Sonuç")
     st.write(f"**Genel GPA:** {gpa:.2f}")
     st.write(f"Stajlar Hariç TOPLAM KREDİ: {valid}")
     st.write(f"Stajlar Dahil TOPLAM KREDİ: {valid + staj_credits}")
     if invalid > 0:
         st.write(f"Geçersiz Kredi (F Notu): {invalid}")
+    if not_taken:
+        for ders in not_taken:
+            st.write(f"❌ Bu yarıyılda **{ders}** dersi alınmadı.")
