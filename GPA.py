@@ -95,7 +95,7 @@ predefined_courses = {
     ],
     "5. Yarıyıl": [
         {"name": "ELECTRONIC CIRCUITS II LABORATORY", "credit": 3},
-        {"name": "ELECTRONIC CIRCUITS I", "credit": 6},
+        {"name": "ELECTRONIC CIRCUITS II", "credit": 6},
         {"name": "MICROPROCESSORS", "credit": 5},
         {"name": "DIGITAL SIGNAL PROCESSING", "credit": 6},
         {"name": "INTRODUCTION TO CONTROL SYSTEMS", "credit": 5},
