@@ -52,20 +52,9 @@ if staj1:
 if staj2:
     staj_credits += 3
 
-# Yarıyıl seçimi
-semester = st.sidebar.selectbox("Yarıyıl Seç", [
-    "1. Yarıyıl","2. Yarıyıl","3. Yarıyıl","4. Yarıyıl",
-    "5. Yarıyıl","6. Yarıyıl","7. Yarıyıl","8. Yarıyıl"
-])
-
 # Session state hazırlığı
 if "courses" not in st.session_state:
-    st.session_state["courses"] = {}
-
-if semester not in st.session_state["courses"]:
-    st.session_state["courses"][semester] = []
-
-entered_courses = st.session_state["courses"][semester]
+    st.session_state["courses"] = {f"{i}. Yarıyıl": [] for i in range(1, 9)}
 
 # Zorunlu dersler listesi
 predefined_courses = {
@@ -125,51 +114,52 @@ predefined_courses = {
     ],
 }
 
-st.subheader(f"📚 {semester} Dersleri")
+# --- Seçmeli ders ekleme (Sidebar’dan) ---
+st.sidebar.header("➕ Seçmeli Ders Ekle")
+target_semester = st.sidebar.selectbox("Yarıyıl Seç", list(predefined_courses.keys()))
+elective_name = st.sidebar.text_input("Ders Adı")
+elective_credit = st.sidebar.number_input("Kredi", min_value=1, max_value=20, value=6)
+elective_grade = st.sidebar.selectbox("Not", list(grade_points.keys()), key="elective-grade")
 
-# Ön tanımlı dersler
-for course in predefined_courses.get(semester, []):
-    prev = next((c for c in entered_courses if c["name"] == course["name"]), None)
-    grade = st.selectbox(
-        f"{course['name']} ({course['credit']} kredi)",
-        list(grade_points.keys()),
-        key=f"{semester}-{course['name']}",
-        index=list(grade_points.keys()).index(prev["grade"]) if prev else list(grade_points.keys()).index("Alınmadı")
-    )
-    new_course = {"name": course["name"], "credit": course["credit"], "grade": grade, "type": "normal"}
-    entered_courses = [c for c in entered_courses if c["name"] != course["name"]] + [new_course]
+if st.sidebar.button("Ekle"):
+    st.session_state["courses"][target_semester].append({
+        "name": elective_name,
+        "credit": elective_credit,
+        "grade": elective_grade,
+        "type": "elective"
+    })
+    st.sidebar.success(f"{target_semester} için '{elective_name}' eklendi!")
 
-# Seçmeli ders ekleme
-with st.expander("➕ Seçmeli Ders Ekle"):
-    elective_name = st.text_input("Seçmeli Ders Adı", key=f"elective-{semester}")
-    elective_credit = st.number_input("Kredi", min_value=1, max_value=20, value=6, key=f"elective-credit-{semester}")
-    elective_grade = st.selectbox("Seçmeli Ders Notu", list(grade_points.keys()), key=f"elective-grade-{semester}")
-    if st.button("Ekle", key=f"add-elective-{semester}") and elective_name:
-        entered_courses.append({
-            "name": elective_name,
-            "credit": elective_credit,
-            "grade": elective_grade,
-            "type": "elective"
-        })
-
-# Seçmeli dersleri düzenleme
-if any(c["type"] == "elective" for c in entered_courses):
-    st.write("📌 Eklenen Seçmeli Dersler:")
-    new_list = []
-    for i, c in enumerate([c for c in entered_courses if c["type"] == "elective"]):
+# --- Dersleri Göster ---
+for semester, default_courses in predefined_courses.items():
+    st.subheader(f"📚 {semester} Dersleri")
+    # Ön tanımlı dersler
+    for course in default_courses:
+        prev = next((c for c in st.session_state["courses"][semester] if c["name"] == course["name"]), None)
         grade = st.selectbox(
-            f"{c['name']} ({c['credit']} kredi)",
+            f"{course['name']} ({course['credit']} kredi)",
             list(grade_points.keys()),
-            key=f"{semester}-elective-{i}",
-            index=list(grade_points.keys()).index(c["grade"])
+            key=f"{semester}-{course['name']}",
+            index=list(grade_points.keys()).index(prev["grade"]) if prev else list(grade_points.keys()).index("Alınmadı")
         )
-        new_list.append({"name": c["name"], "credit": c["credit"], "grade": grade, "type": "elective"})
-    # Güncelle elective dersler
-    entered_courses = [c for c in entered_courses if c["type"] != "elective"] + new_list
+        # Güncelle
+        new_course = {"name": course["name"], "credit": course["credit"], "grade": grade, "type": "normal"}
+        st.session_state["courses"][semester] = [c for c in st.session_state["courses"][semester] if c["name"] != course["name"]] + [new_course]
 
-# Kaydet
-if st.button("💾 Kaydet"):
-    st.session_state["courses"][semester] = entered_courses
+    # Eklenen seçmeli dersler
+    electives = [c for c in st.session_state["courses"][semester] if c["type"] == "elective"]
+    if electives:
+        st.write("📌 Seçmeli Dersler:")
+        new_list = []
+        for i, c in enumerate(electives):
+            grade = st.selectbox(
+                f"{c['name']} ({c['credit']} kredi)",
+                list(grade_points.keys()),
+                key=f"{semester}-elective-{i}",
+                index=list(grade_points.keys()).index(c["grade"])
+            )
+            new_list.append({"name": c["name"], "credit": c["credit"], "grade": grade, "type": "elective"})
+        st.session_state["courses"][semester] = [c for c in st.session_state["courses"][semester] if c["type"] != "elective"] + new_list
 
 # --- JSON Kaydet / Yükle ---
 st.markdown("---")
