@@ -152,13 +152,20 @@ for semester, default_courses in predefined_courses.items():
         st.write("📌 Seçmeli Dersler:")
         new_list = []
         for i, c in enumerate(electives):
-            grade = st.selectbox(
-                f"{c['name']} ({c['credit']} kredi)",
-                list(grade_points.keys()),
-                key=f"{semester}-elective-{i}",
-                index=list(grade_points.keys()).index(c["grade"])
-            )
+            col1, col2 = st.columns([3,1])
+            with col1:
+                grade = st.selectbox(
+                    f"{c['name']} ({c['credit']} kredi)",
+                    list(grade_points.keys()),
+                    key=f"{semester}-elective-{i}",
+                    index=list(grade_points.keys()).index(c["grade"])
+                )
+            with col2:
+                if st.button("🗑️ Sil", key=f"delete-{semester}-{i}"):
+                    st.session_state["courses"][semester] = [x for x in st.session_state["courses"][semester] if not (x["type"]=="elective" and x["name"]==c["name"])]
+                    st.experimental_rerun()
             new_list.append({"name": c["name"], "credit": c["credit"], "grade": grade, "type": "elective"})
+        # Güncelle elective dersler
         st.session_state["courses"][semester] = [c for c in st.session_state["courses"][semester] if c["type"] != "elective"] + new_list
 
 # --- JSON Kaydet / Yükle ---
