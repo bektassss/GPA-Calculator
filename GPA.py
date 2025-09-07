@@ -136,12 +136,15 @@ for semester, default_courses in predefined_courses.items():
     # Ön tanımlı dersler
     for course in default_courses:
         prev = next((c for c in st.session_state["courses"][semester] if c["name"] == course["name"]), None)
+        current_grade = prev["grade"] if prev else "Alınmadı"
+
         grade = st.selectbox(
             f"{course['name']} ({course['credit']} kredi)",
             list(grade_points.keys()),
             key=f"{semester}-{course['name']}",
-            index=list(grade_points.keys()).index(prev["grade"]) if prev else list(grade_points.keys()).index("Alınmadı")
+            index=list(grade_points.keys()).index(current_grade)
         )
+
         # Güncelle
         new_course = {"name": course["name"], "credit": course["credit"], "grade": grade, "type": "normal"}
         st.session_state["courses"][semester] = [c for c in st.session_state["courses"][semester] if c["name"] != course["name"]] + [new_course]
