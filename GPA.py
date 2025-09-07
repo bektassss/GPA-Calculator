@@ -98,17 +98,26 @@ predefined_courses = {
 
 # --- Session başlat ---
 if "courses" not in st.session_state:
-    st.session_state["courses"] = {sem: [
-        {"name": c["name"], "credit": c["credit"], "grade": "Alınmadı", "type": "normal", "id": c["name"]}
-        for c in courses
-    ] for sem, courses in predefined_courses.items()}
+    st.session_state["courses"] = {
+        sem: [
+            {"name": c["name"], "credit": c["credit"], "grade": "Alınmadı", "type": "normal", "id": c["name"]}
+            for c in lst
+        ]
+        for sem, lst in predefined_courses.items()
+    }
 
-# --- JSON yükleme (sadece 1 kere) ---
+# --- JSON yükleme (sadece ilk defa) ---
 uploaded_file = st.sidebar.file_uploader("📂 JSON yükle", type="json")
 if uploaded_file is not None and "loaded" not in st.session_state:
     st.session_state["courses"] = json.load(uploaded_file)
     st.session_state["loaded"] = True
     st.sidebar.success("✅ JSON yüklendi!")
+
+# --- Staj Seçenekleri ---
+st.sidebar.header("🛠️ Stajlar")
+staj1 = st.sidebar.checkbox("INDUSTRY TRAINING I (3 kredi)")
+staj2 = st.sidebar.checkbox("INDUSTRY TRAINING II (3 kredi)")
+staj_credits = (3 if staj1 else 0) + (3 if staj2 else 0)
 
 # --- Seçmeli ekleme ---
 st.sidebar.header("➕ Seçmeli Ders Ekle")
@@ -150,9 +159,11 @@ st.download_button("📥 JSON Olarak İndir", data=data, file_name="gpa_data.jso
 # --- Genel Sonuç ---
 all_courses = [c for sem in st.session_state["courses"].values() for c in sem]
 gpa, valid, invalid, total_gpa, not_taken = calculate_gpa(all_courses)
+
 st.subheader("📈 Genel Sonuç")
 st.write(f"**Genel GPA:** {gpa:.2f}")
-st.write(f"TOPLAM KREDİ: {valid}")
+st.write(f"TOPLAM KREDİ (stajlar hariç): {valid}")
+st.write(f"TOPLAM KREDİ (stajlar dahil): {valid + staj_credits}")
 if invalid > 0:
     st.write(f"Geçersiz Kredi (F Notu): {invalid}")
 if not_taken:
