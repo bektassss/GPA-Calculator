@@ -141,19 +141,18 @@ for semester, default_courses in predefined_courses.items():
         key_name = f"{semester}-{course['name']}"
         prev = next((c for c in st.session_state["courses"][semester] if c["name"] == course["name"]), None)
 
-        if key_name not in st.session_state:
-            st.session_state[key_name] = prev["grade"] if prev else "Alınmadı"
+        current_grade = prev["grade"] if prev else "Alınmadı"
 
-        # Selectbox sadece key ile yönetiliyor
-        st.selectbox(
+        selected_grade = st.selectbox(
             f"{course['name']} ({course['credit']} kredi)",
             grades,
+            index=grades.index(current_grade),
             key=key_name
         )
 
-        # Güncel course bilgisini yaz
-        new_course = {"name": course["name"], "credit": course["credit"], "grade": st.session_state[key_name], "type": "normal"}
-        st.session_state["courses"][semester] = [c for c in st.session_state["courses"][semester] if c["name"] != course["name"]] + [new_course]
+        if not prev or prev["grade"] != selected_grade:
+            new_course = {"name": course["name"], "credit": course["credit"], "grade": selected_grade, "type": "normal"}
+            st.session_state["courses"][semester] = [c for c in st.session_state["courses"][semester] if c["name"] != course["name"]] + [new_course]
 
     # Eklenen seçmeli dersler
     electives = [c for c in st.session_state["courses"][semester] if c["type"] == "elective"]
@@ -162,15 +161,15 @@ for semester, default_courses in predefined_courses.items():
         new_list = []
         for i, c in enumerate(electives):
             key_name = f"{semester}-elective-{i}"
-            if key_name not in st.session_state:
-                st.session_state[key_name] = c["grade"]
-
-            st.selectbox(
+            selected_grade = st.selectbox(
                 f"{c['name']} ({c['credit']} kredi)",
                 grades,
+                index=grades.index(c["grade"]),
                 key=key_name
             )
-            new_list.append({"name": c["name"], "credit": c["credit"], "grade": st.session_state[key_name], "type": "elective"})
+            if c["grade"] != selected_grade:
+                c["grade"] = selected_grade
+            new_list.append(c)
         st.session_state["courses"][semester] = [c for c in st.session_state["courses"][semester] if c["type"] != "elective"] + new_list
 
 # --- JSON Kaydet ---
