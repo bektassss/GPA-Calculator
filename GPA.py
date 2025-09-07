@@ -140,7 +140,7 @@ for semester, default_courses in predefined_courses.items():
             f"{course['name']} ({course['credit']} kredi)",
             list(grade_points.keys()),
             key=f"{semester}-{course['name']}",
-            index=list(grade_points.keys()).index(prev["grade"]) if prev else list(grade_points.keys()).index("Alınmadı")
+            value=prev["grade"] if prev else "Alınmadı"
         )
         # Güncelle
         new_course = {"name": course["name"], "credit": course["credit"], "grade": grade, "type": "normal"}
@@ -158,7 +158,7 @@ for semester, default_courses in predefined_courses.items():
                     f"{c['name']} ({c['credit']} kredi)",
                     list(grade_points.keys()),
                     key=f"{semester}-elective-{i}",
-                    index=list(grade_points.keys()).index(c["grade"])
+                    value=c["grade"]
                 )
             with col2:
                 if st.button("🗑️ Sil", key=f"delete-{semester}-{i}"):
@@ -181,14 +181,6 @@ uploaded_file = st.file_uploader("📂 Daha önce kaydedilmiş veriyi yükle", t
 if uploaded_file is not None:
     st.session_state["courses"] = json.load(uploaded_file)
     st.success("✅ Veriler başarıyla yüklendi!")
-    # Selectbox değerlerini de güncelle
-    for sem_key, courses in st.session_state["courses"].items():
-        for course in courses:
-            if course["type"] == "normal":
-                st.session_state[f"{sem_key}-{course['name']}"] = course["grade"]
-            elif course["type"] == "elective":
-                idx = [i for i, c in enumerate(courses) if c["type"]=="elective" and c["name"]==course["name"]].pop(0)
-                st.session_state[f"{sem_key}-elective-{idx}"] = course["grade"]
 
 # --- Hesaplama ---
 if st.session_state["courses"]:
@@ -215,4 +207,4 @@ if st.session_state["courses"]:
         st.write(f"Geçersiz Kredi (F Notu): {invalid}")
     if not_taken:
         for ders in not_taken:
-            st.write(f"❌ Bu yarıyılda **{ders}** dersi alınmadı.")
+            st.write(f"❌ Bu derslerden bazıları alınmadı: {', '.join(not_taken)}")
