@@ -23,7 +23,6 @@ def calculate_gpa(courses):
         if grade == "Alınmadı":
             not_taken.append(course["name"])
             continue
-
         if grade is None:
             continue
 
@@ -47,11 +46,7 @@ st.sidebar.header("Stajlar")
 staj1 = st.sidebar.checkbox("INDUSTRY TRAINING I (3 kredi)")
 staj2 = st.sidebar.checkbox("INDUSTRY TRAINING II (3 kredi)")
 
-staj_credits = 0
-if staj1:
-    staj_credits += 3
-if staj2:
-    staj_credits += 3
+staj_credits = (3 if staj1 else 0) + (3 if staj2 else 0)
 
 # --- JSON Yükleme ---
 uploaded_file = st.sidebar.file_uploader("📂 Daha önce kaydedilmiş veriyi yükle", type="json")
@@ -149,12 +144,14 @@ for semester, default_courses in predefined_courses.items():
         if key_name not in st.session_state:
             st.session_state[key_name] = prev["grade"] if prev else "Alınmadı"
 
-        grade = st.selectbox(
+        # Selectbox sadece key ile yönetiliyor
+        st.selectbox(
             f"{course['name']} ({course['credit']} kredi)",
             grades,
             key=key_name
         )
 
+        # Güncel course bilgisini yaz
         new_course = {"name": course["name"], "credit": course["credit"], "grade": st.session_state[key_name], "type": "normal"}
         st.session_state["courses"][semester] = [c for c in st.session_state["courses"][semester] if c["name"] != course["name"]] + [new_course]
 
@@ -168,7 +165,7 @@ for semester, default_courses in predefined_courses.items():
             if key_name not in st.session_state:
                 st.session_state[key_name] = c["grade"]
 
-            grade = st.selectbox(
+            st.selectbox(
                 f"{c['name']} ({c['credit']} kredi)",
                 grades,
                 key=key_name
