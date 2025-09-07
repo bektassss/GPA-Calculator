@@ -136,11 +136,14 @@ for semester, default_courses in predefined_courses.items():
     # Ön tanımlı dersler
     for course in default_courses:
         prev = next((c for c in st.session_state["courses"][semester] if c["name"] == course["name"]), None)
+        options = list(grade_points.keys())
+        default_value = prev["grade"] if (prev and prev["grade"] in options) else "Alınmadı"
+
         grade = st.selectbox(
             f"{course['name']} ({course['credit']} kredi)",
-            list(grade_points.keys()),
+            options,
             key=f"{semester}-{course['name']}",
-            value=prev["grade"] if prev else "Alınmadı"
+            value=default_value
         )
         # Güncelle
         new_course = {"name": course["name"], "credit": course["credit"], "grade": grade, "type": "normal"}
@@ -154,11 +157,13 @@ for semester, default_courses in predefined_courses.items():
         for i, c in enumerate(electives):
             col1, col2 = st.columns([3,1])
             with col1:
+                options = list(grade_points.keys())
+                default_value = c["grade"] if c["grade"] in options else "Alınmadı"
                 grade = st.selectbox(
                     f"{c['name']} ({c['credit']} kredi)",
-                    list(grade_points.keys()),
+                    options,
                     key=f"{semester}-elective-{i}",
-                    value=c["grade"]
+                    value=default_value
                 )
             with col2:
                 if st.button("🗑️ Sil", key=f"delete-{semester}-{i}"):
