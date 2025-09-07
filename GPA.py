@@ -95,7 +95,7 @@ predefined_courses = {
     ],
     "5. Yarıyıl": [
         {"name": "ELECTRONIC CIRCUITS II LABORATORY", "credit": 3},
-        {"name": "ELECTRONIC CIRCUITS II", "credit": 6},
+        {"name": "ELECTRONIC CIRCUITS I", "credit": 6},
         {"name": "MICROPROCESSORS", "credit": 5},
         {"name": "DIGITAL SIGNAL PROCESSING", "credit": 6},
         {"name": "INTRODUCTION TO CONTROL SYSTEMS", "credit": 5},
@@ -181,6 +181,14 @@ uploaded_file = st.file_uploader("📂 Daha önce kaydedilmiş veriyi yükle", t
 if uploaded_file is not None:
     st.session_state["courses"] = json.load(uploaded_file)
     st.success("✅ Veriler başarıyla yüklendi!")
+    # Selectbox değerlerini de güncelle
+    for sem_key, courses in st.session_state["courses"].items():
+        for course in courses:
+            if course["type"] == "normal":
+                st.session_state[f"{sem_key}-{course['name']}"] = course["grade"]
+            elif course["type"] == "elective":
+                idx = [i for i, c in enumerate(courses) if c["type"]=="elective" and c["name"]==course["name"]].pop(0)
+                st.session_state[f"{sem_key}-elective-{idx}"] = course["grade"]
 
 # --- Hesaplama ---
 if st.session_state["courses"]:
