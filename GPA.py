@@ -174,8 +174,6 @@ uploaded_file = st.file_uploader("📂 Daha önce kaydedilmiş veriyi yükle", t
 if uploaded_file is not None:
     st.session_state["courses"] = json.load(uploaded_file)
     st.success("✅ Veriler başarıyla yüklendi!")
-    st.rerun()   # <-- Sayfayı yeniden başlat ki selectbox değerleri güncellensin
-
 
 # --- Hesaplama ---
 if st.session_state["courses"]:
