@@ -169,3 +169,11 @@ if invalid > 0:
 if not_taken:
     for ders in not_taken:
         st.write(f"❌ **{ders}** dersi alınmadı.")
+
+# --- Sidebar GPA hızlı görünüm ---
+st.sidebar.header("📊 GPA Görüntüle")
+gpa_option = st.sidebar.selectbox("Seçiniz", ["Genel GPA", "Stajlar Hariç"])
+if gpa_option == "Genel GPA":
+    st.sidebar.success(f"Genel GPA: {gpa:.2f} | Krediler: {valid + staj_credits}")
+else:
+    st.sidebar.success(f"Stajlar Hariç GPA: {gpa:.2f} | Krediler: {valid}")
